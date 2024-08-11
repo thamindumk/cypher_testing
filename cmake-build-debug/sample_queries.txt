@@ -1,0 +1,89 @@
+MATCH (n:Person)-[:KNOWS]->(m:Person) WHERE n.age > 30 AND m.name STARTS WITH 'J' RETURN n.name AS personName, m.name AS acquaintanceName ORDER BY n.age DESC SKIP 5 LIMIT 10;
+
+MATCH (n:Person) WITH n MATCH (n)-[:WORKS_AT]->(c:Company) WHERE c.revenue > 1000000 RETURN n.name AS employeeName, c.name AS companyName;
+
+UNWIND [1, 2, 3, 4, 5] AS number WITH number MATCH (n:Person) WHERE n.age = number RETURN n.name, number;
+
+MATCH (n:Person) OPTIONAL MATCH (n)-[r:FRIENDS_WITH]->(m:Person) RETURN n.name AS personName, collect(m.name) AS friendsList;
+
+MERGE (n:Person {name: 'John'}) ON CREATE SET n.age = 30 ON MATCH SET n.lastSeen = datetime() RETURN n;
+
+CREATE (n:Person {name: 'Alice', age: 28}) MERGE (n)-[:KNOWS]->(:Person {name: 'Bob'}) RETURN n;
+
+MATCH (n:Person) SET n.email = 'contact@example.com' REMOVE n.oldAddress RETURN n.name, n.email;
+
+MATCH (n:Person)-[r:FRIENDS_WITH]->(m:Person) DELETE r RETURN n.name, m.name;
+
+MATCH (n:Person) REMOVE n.age RETURN n;
+
+CALL db.labels() YIELD label RETURN label;
+
+CALL apoc.help('db.labels') YIELD name, value RETURN name, value;
+
+MATCH (n:Person) WITH n MATCH (n)-[:KNOWS]->(m:Person) WHERE m.age < 25 RETURN n.name AS personName, m.name AS youngFriend;
+
+MATCH (n:Person)-[:KNOWS]->(m:Person) WITH n, count(m) AS friendsCount WHERE friendsCount > 5 RETURN n.name, friendsCount;
+
+MATCH (n:Person)-[:KNOWS]->(m:Person) WHERE n.name CONTAINS 'J' AND m.age >= 30 RETURN n.name AS personName, m.name AS acquaintanceName;
+
+MATCH (n:Person) WHERE EXISTS { MATCH (n)-[:KNOWS]->(:Person) RETURN n } RETURN n.name;
+
+MATCH (n:Person)-[:KNOWS]->(m:Person) RETURN [n.name, m.name] AS namesList;
+
+MATCH (n:Person) WITH n.name AS name, [n.age, n.height] AS properties RETURN name, properties;
+
+MATCH (n:Person) RETURN CASE WHEN n.age < 30 THEN 'Young' ELSE 'Old' END AS ageCategory;
+
+MATCH (n:Person) RETURN [n IN [1, 2, 3] | n * 2] AS doubledList;
+
+MATCH (n:Person) RETURN [(n)-[:KNOWS]->(m:Person) | m.name] AS friendsNames;
+
+MATCH (n:Person) RETURN ANY(n IN [1, 2, 3] WHERE n > 1) AS anyGreaterThanOne;
+
+MATCH (n:Person) WHERE NOT n.name = 'John' RETURN n.name;
+
+MATCH (n:Person) RETURN n.age + 5 AS agePlusFive;
+
+MATCH (n:Person) RETURN n.age * 2 AS doubleAge;
+
+MATCH (n:Person) RETURN n.age ^ 2 AS ageSquared;
+
+MATCH (n:Person) RETURN -n.age AS negativeAge;
+
+MATCH (n:Person) RETURN n.name + ' is ' + toString(n.age) AS description;
+
+MATCH (n:Person) WHERE n.age > 30 OR n.name = 'John' RETURN n.name;
+
+MATCH (n:Person) WHERE n.age > 30 XOR n.name = 'John' RETURN n.name;
+
+MATCH (n:Person) WHERE n.age > 30 AND n.name = 'John' RETURN n.name;
+
+MATCH (n:Person) WHERE NOT n.age < 30 RETURN n.name;
+
+MATCH (n:Person) WHERE n.age >= 30 RETURN n.name;
+
+MATCH (n:Person) WHERE n.age = 30 RETURN n.name;
+
+MATCH (n:Person) WHERE n.name STARTS WITH 'J' RETURN n.name;
+
+MATCH (n:Person) WHERE n.name CONTAINS 'John' RETURN n.name;
+
+MATCH (n:Person) WHERE n.age IN [30, 40, 50] RETURN n.name;
+
+MATCH (n:Person) WHERE n.name IS NULL RETURN n.name;
+
+MATCH (n:Person) RETURN n.age + 10 AS incrementedAge;
+
+MATCH (n:Person) RETURN n.age * 2 AS doubledAge;
+
+MATCH (n:Person) RETURN n.age ^ 2 AS squaredAge;
+
+MATCH (n:Person) RETURN -n.age AS negatedAge;
+
+MATCH (n:Person) RETURN [1, 2, 3] AS numbersList;
+
+MATCH (n:Person) RETURN {name: n.name, age: n.age} AS personDetails;
+
+RETURN 'Hello, World!' AS greeting;
+
+RETURN 42 AS answer;

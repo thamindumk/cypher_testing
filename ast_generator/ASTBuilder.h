@@ -393,11 +393,12 @@ public:
       auto *node = new ASTInternalNode("RETURN");
       if(ctx->DISTINCT())
       {
-        node->addElements(new ASTLeafNoValue("DISTINCTS"));
-      }
-      if(ctx->oC_Limit())
+        auto *distinct = new ASTInternalNode("DISTINCT");
+        distinct->addElements(any_cast<ASTNode*>(visitOC_ProjectionItems(ctx->oC_ProjectionItems())));
+        node->addElements(distinct);
+      }else
       {
-        node->addElements(any_cast<ASTNode*>(visitOC_Limit(ctx->oC_Limit())));
+        node->addElements(any_cast<ASTNode*>(visitOC_ProjectionItems(ctx->oC_ProjectionItems())));
       }
       if(ctx->oC_Order())
       {
@@ -407,16 +408,17 @@ public:
       {
         node->addElements(any_cast<ASTNode*>(visitOC_Skip(ctx->oC_Skip())));
       }
-
-      node->addElements(any_cast<ASTNode*>(visitOC_ProjectionItems(ctx->oC_ProjectionItems())));
-
+      if(ctx->oC_Limit())
+      {
+        node->addElements(any_cast<ASTNode*>(visitOC_Limit(ctx->oC_Limit())));
+      }
       return static_cast<ASTNode*>(node);
     }
 
   //finished
     std::any visitOC_ProjectionItems(CypherParser::OC_ProjectionItemsContext *ctx) override {
       auto *node = new ASTInternalNode("RETURN_BODY");
-      if(ctx->getText().find('*') != std::string::npos)
+      if(ctx->children[0]->getText() == "*")
       {
         node->addElements(new ASTLeafNoValue("*"));
       }
@@ -577,10 +579,10 @@ public:
       auto *node = new ASTInternalNode("RELATIONSHIP_PATTTERN");
       if(ctx->oC_LeftArrowHead() && !ctx->oC_RightArrowHead())
       {
-        node->addElements(new ASTLeafNoValue("LEFT_ARROW"));
+        node->addElements(any_cast<ASTNode*>(visitOC_LeftArrowHead(ctx->oC_LeftArrowHead())));
       }else if(!ctx->oC_LeftArrowHead() && ctx->oC_RightArrowHead())
       {
-        node->addElements(new ASTLeafNoValue("RIGHT_ARROW"));
+        node->addElements(any_cast<ASTNode*>(visitOC_RightArrowHead(ctx->oC_RightArrowHead())));
       }else
       {
         node->addElements(new ASTLeafNoValue("UNIDIRECTION_ARROW"));
@@ -807,6 +809,7 @@ public:
   //finished
     std::any visitOC_StringListNullPredicateExpression(CypherParser::OC_StringListNullPredicateExpressionContext *ctx) override {
       auto *node = new ASTInternalNode("PREDICATE_EXPRESSIONS");
+      node->addElements(any_cast<ASTNode*>(visitOC_AddOrSubtractExpression(ctx->oC_AddOrSubtractExpression())));
       if(!ctx->oC_StringPredicateExpression().empty())
       {
         auto *strPredicate = new ASTInternalNode("STRING_PREDICATES");
@@ -834,7 +837,7 @@ public:
         }
         node->addElements(nullPredicate);
       }
-      if(!node->elements.empty())
+      if(node->elements.size()>1)
       {
         return static_cast<ASTNode*>(node);
       }else
@@ -886,6 +889,7 @@ public:
     std::any visitOC_AddOrSubtractExpression(CypherParser::OC_AddOrSubtractExpressionContext *ctx) override {
       if(ctx->oC_MultiplyDivideModuloExpression().size()>1)
       {
+        int multIndex =1;
         auto *node = new ASTInternalNode("ADD_OR_SUBSTRACT");
         node->addElements(any_cast<ASTNode*>(visitOC_MultiplyDivideModuloExpression(ctx->oC_MultiplyDivideModuloExpression(0))));
 
@@ -894,12 +898,12 @@ public:
           if(ctx->children[i]->getText() == "+")
           {
             auto *plus = new ASTInternalNode("+");
-            plus->addElements(any_cast<ASTNode*>(visitOC_MultiplyDivideModuloExpression(ctx->oC_MultiplyDivideModuloExpression(i))));
+            plus->addElements(any_cast<ASTNode*>(visitOC_MultiplyDivideModuloExpression(ctx->oC_MultiplyDivideModuloExpression(multIndex++))));
             node->addElements(plus);
           }else if(ctx->children[i]->getText() == "-")
           {
             auto *minus = new ASTInternalNode("-");
-            minus->addElements(any_cast<ASTNode*>(visitOC_MultiplyDivideModuloExpression(ctx->oC_MultiplyDivideModuloExpression(i))));
+            minus->addElements(any_cast<ASTNode*>(visitOC_MultiplyDivideModuloExpression(ctx->oC_MultiplyDivideModuloExpression(multIndex++))));
             node->addElements(minus);
           }
         }
@@ -912,6 +916,7 @@ public:
     std::any visitOC_MultiplyDivideModuloExpression(CypherParser::OC_MultiplyDivideModuloExpressionContext *ctx) override {
       if(ctx->oC_PowerOfExpression().size()>1)
       {
+        int powIndex = 1;
         auto *node = new ASTInternalNode("MULTIPLY_DIVID_MODULO");
         node->addElements(any_cast<ASTNode*>(visitOC_PowerOfExpression(ctx->oC_PowerOfExpression(0))));
 
@@ -920,17 +925,18 @@ public:
           if(ctx->children[i]->getText() == "*")
           {
             auto *plus = new ASTInternalNode("*");
-            plus->addElements(any_cast<ASTNode*>(visitOC_PowerOfExpression(ctx->oC_PowerOfExpression(i))));
+            plus->addElements(any_cast<ASTNode*>(visitOC_PowerOfExpression(ctx->oC_PowerOfExpression(powIndex++))));
             node->addElements(plus);
           }else if(ctx->children[i]->getText() == "/")
           {
             auto *minus = new ASTInternalNode("/");
-            minus->addElements(any_cast<ASTNode*>(visitOC_PowerOfExpression(ctx->oC_PowerOfExpression(i))));
+            minus->addElements(any_cast<ASTNode*>(visitOC_PowerOfExpression(ctx->oC_PowerOfExpression(powIndex++))));
             node->addElements(minus);
           }
         }
         return static_cast<ASTNode*>(node);
       }
+
       return visitOC_PowerOfExpression(ctx->oC_PowerOfExpression(0));
     }
 
@@ -958,12 +964,12 @@ public:
 
   //finished
     std::any visitOC_UnaryAddOrSubtractExpression(CypherParser::OC_UnaryAddOrSubtractExpressionContext *ctx) override {
-      if(ctx->getText().find("+") != string::npos)
+      if(ctx->children[0]->getText() == "+")
       {
         auto *node = new ASTInternalNode("UNARY_+");
         node->addElements(any_cast<ASTNode*>(visitOC_NonArithmeticOperatorExpression(ctx->oC_NonArithmeticOperatorExpression())));
         return static_cast<ASTNode*>(node);
-      }else if(ctx->getText().find("-") != string::npos)
+      }else if(ctx->children[0]->getText() == "-")
       {
         auto *node = new ASTInternalNode("UNARY_-");
         node->addElements(any_cast<ASTNode*>(visitOC_NonArithmeticOperatorExpression(ctx->oC_NonArithmeticOperatorExpression())));
@@ -979,31 +985,25 @@ public:
       if(!ctx->oC_ListOperatorExpression().empty() | !ctx->oC_PropertyLookup().empty())
       {
         auto *node = new ASTInternalNode("NON_ARITHMETIC_OPERATOR");
-        for(auto *abc : ctx->children)
+        int i = 0;
+        int j = 0;
+        for(auto *child : ctx->children)
         {
-          std::string typeName = typeid(*abc).name();
-          cout<<typeName.substr(17)<<endl;
+          std::string typeName = typeid(*child).name();
           if(typeName.substr(17) == "OC_AtomContextE")
           {
             node->addElements(any_cast<ASTNode*>(visitOC_Atom(ctx->oC_Atom())));
           }else if(typeName.substr(17) == "OC_PropertyLookupContextE")
           {
-            node->addElements(any_cast<ASTNode*>(visitOC_PropertyLookup(any_cast<>())));
+            node->addElements(any_cast<ASTNode*>(visitOC_PropertyLookup(ctx->oC_PropertyLookup(i++))));
+          }else if(typeName.substr(17) == "OC_ListOperatorExpressionContextE")
+          {
+            node->addElements(any_cast<ASTNode*>(visitOC_ListOperatorExpression(ctx->oC_ListOperatorExpression(j++))));
+          }else
+          {
+            node->addElements(any_cast<ASTNode*>(visitOC_NodeLabels(ctx->oC_NodeLabels())));
           }
         }
-        for(CypherParser::OC_ListOperatorExpressionContext* element : ctx->oC_ListOperatorExpression())
-        {
-          node->addElements(any_cast<ASTNode*>(visitOC_ListOperatorExpression(element)));
-        }
-        for(CypherParser::OC_PropertyLookupContext* element : ctx->oC_PropertyLookup())
-        {
-          node->addElements(any_cast<ASTNode*>(visitOC_PropertyLookup(element)));
-        }
-        if(ctx->oC_NodeLabels())
-        {
-          node->addElements(any_cast<ASTNode*>(visitOC_NodeLabels(ctx->oC_NodeLabels())));
-        }
-
         return static_cast<ASTNode*>(node);
       }
       return visitOC_Atom(ctx->oC_Atom());
@@ -1070,53 +1070,201 @@ public:
       }
     }
 
-
+  //finished
     std::any visitOC_CaseExpression(CypherParser::OC_CaseExpressionContext *ctx) override {
-      return visitChildren(ctx);
+      auto *caseNode = new ASTInternalNode("CASE_PATTERN");
+      int caseAlt = 0;
+      for(int i = 0; i<ctx->children.size(); i++)
+      {
+        string text = ctx->children[i]->getText();
+        std::transform(text.begin(), text.end(), text.begin(), ::toupper);
+        string type;
+        if(i+2 < ctx->children.size())
+        {
+          type = typeid(*ctx->children[i+2]).name();
+        }
+        if(text == "CASE" && type.substr(17) == "OC_ExpressionContextE")
+        {
+          auto *node = new ASTInternalNode("CASE_EXPRESSION");
+          node->addElements(any_cast<ASTNode*>(visitOC_Expression(ctx->oC_Expression(0))));
+          caseNode->addElements(node);
+        }else if(text == "ELSE" && ctx->oC_Expression().size()>1)
+        {
+          auto *node = new ASTInternalNode("ELSE_EXPRESSION");
+          node->addElements(any_cast<ASTNode*>(visitOC_Expression(ctx->oC_Expression(1))));
+          caseNode->addElements(node);
+        }else if(text == "ELSE")
+        {
+          auto *node = new ASTInternalNode("ELSE_EXPRESSION");
+          node->addElements(any_cast<ASTNode*>(visitOC_Expression(ctx->oC_Expression(0))));
+          caseNode->addElements(node);
+        }else if(text.find("WHEN") != string::npos)
+        {
+          caseNode->addElements(any_cast<ASTNode*>(visitOC_CaseAlternative(ctx->oC_CaseAlternative(caseAlt++))));
+        }
+      }
+      return static_cast<ASTNode*>(caseNode);
     }
 
+  //finished
     std::any visitOC_CaseAlternative(CypherParser::OC_CaseAlternativeContext *ctx) override {
-      return visitChildren(ctx);
+      auto *node = new ASTInternalNode("CASE");
+
+      auto *when = new ASTInternalNode("WHEN");
+      when->addElements(any_cast<ASTNode*>(visitOC_Expression(ctx->oC_Expression(0))));
+
+      auto *then = new ASTInternalNode("THEN");
+      then->addElements(any_cast<ASTNode*>(visitOC_Expression(ctx->oC_Expression(1))));
+
+      node->addElements(when);
+      node->addElements(then);
+      return static_cast<ASTNode*>(node);
     }
 
+  //finished
     std::any visitOC_ListComprehension(CypherParser::OC_ListComprehensionContext *ctx) override {
-      return visitChildren(ctx);
+      auto *node = new ASTInternalNode("LIST_COMPREHENSION");
+      node->addElements(any_cast<ASTNode*>(visitOC_FilterExpression(ctx->oC_FilterExpression())));
+      if(ctx->getText().find('|') != string::npos)
+      {
+        auto *result = new ASTInternalNode("FILTER_RESULT");
+        result->addElements(any_cast<ASTNode*>(visitOC_Expression(ctx->oC_Expression())));
+        node->addElements(result);
+      }
+      return static_cast<ASTNode*>(node);
     }
 
+  //finished
     std::any visitOC_PatternComprehension(CypherParser::OC_PatternComprehensionContext *ctx) override {
-      return visitChildren(ctx);
+      auto *node = new ASTInternalNode("PATTERN_COMPREHENSION");
+      if(ctx->oC_Variable())
+      {
+        auto *eual = new ASTInternalNode("=");
+        eual->addElements(any_cast<ASTNode*>(visitOC_Variable(ctx->oC_Variable())));
+        eual->addElements(any_cast<ASTNode*>(visitOC_RelationshipsPattern(ctx->oC_RelationshipsPattern())));
+        node->addElements(eual);
+      }else
+      {
+        node->addElements(any_cast<ASTNode*>(visitOC_RelationshipsPattern(ctx->oC_RelationshipsPattern())));
+      }
+      if(ctx->oC_Where())
+      {
+        node->addElements(any_cast<ASTNode*>(visitOC_Where(ctx->oC_Where())));
+      }
+      auto *result = new ASTInternalNode("FILTER_RESULT");
+      result->addElements(any_cast<ASTNode*>(visitOC_Expression(ctx->oC_Expression())));
+      node->addElements(result);
+      return static_cast<ASTNode*>(node);
     }
 
+  //finished
     std::any visitOC_Quantifier(CypherParser::OC_QuantifierContext *ctx) override {
-      return visitChildren(ctx);
+      if(ctx->ALL())
+      {
+        auto *node = new ASTInternalNode("ALL");
+        node->addElements(any_cast<ASTNode*>(visitOC_FilterExpression(ctx->oC_FilterExpression())));
+        return static_cast<ASTNode*>(node);
+      }else if(ctx->ANY())
+      {
+        auto *node = new ASTInternalNode("ANY");
+        node->addElements(any_cast<ASTNode*>(visitOC_FilterExpression(ctx->oC_FilterExpression())));
+        return static_cast<ASTNode*>(node);
+      }else if(ctx->NONE())
+      {
+        auto *node = new ASTInternalNode("NONE");
+        node->addElements(any_cast<ASTNode*>(visitOC_FilterExpression(ctx->oC_FilterExpression())));
+        return static_cast<ASTNode*>(node);
+      }else
+      {
+        auto *node = new ASTInternalNode("SINGLE");
+        node->addElements(any_cast<ASTNode*>(visitOC_FilterExpression(ctx->oC_FilterExpression())));
+        return static_cast<ASTNode*>(node);
+      }
     }
 
+  //finished
     std::any visitOC_FilterExpression(CypherParser::OC_FilterExpressionContext *ctx) override {
-      return visitChildren(ctx);
+      auto *node = new ASTInternalNode("FILTER_EXPRESSION");
+      node->addElements(any_cast<ASTNode*>(visitOC_IdInColl(ctx->oC_IdInColl())));
+      if(ctx->oC_Where())
+      {
+        node->addElements(any_cast<ASTNode*>(visitOC_Where(ctx->oC_Where())));
+      }
+      return static_cast<ASTNode*>(node);
     }
 
+  //finished
     std::any visitOC_PatternPredicate(CypherParser::OC_PatternPredicateContext *ctx) override {
-      return visitChildren(ctx);
+      return visitOC_RelationshipsPattern(ctx->oC_RelationshipsPattern());
     }
 
+  //finished
     std::any visitOC_ParenthesizedExpression(CypherParser::OC_ParenthesizedExpressionContext *ctx) override {
-      return visitChildren(ctx);
+      return visitOC_Expression(ctx->oC_Expression());
     }
 
+  //finished
     std::any visitOC_IdInColl(CypherParser::OC_IdInCollContext *ctx) override {
-      return visitChildren(ctx);
+      auto *node = new ASTInternalNode("LIST_ITERATE");
+      node->addElements(any_cast<ASTNode*>(visitOC_Variable(ctx->oC_Variable())));
+      node->addElements(any_cast<ASTNode*>(visitOC_Expression(ctx->oC_Expression())));
+      return static_cast<ASTNode*>(node);
     }
 
+  //finished
     std::any visitOC_FunctionInvocation(CypherParser::OC_FunctionInvocationContext *ctx) override {
-      return visitChildren(ctx);
+      auto *node = new ASTInternalNode("FUNCTION_BODY");
+      node->addElements(any_cast<ASTNode*>(visitOC_FunctionName(ctx->oC_FunctionName())));
+
+      auto *aug = new ASTInternalNode("ARGUMENTS");
+      if(ctx->DISTINCT())
+      {
+        auto *distinct = new ASTInternalNode("DISTINCT");
+        for(CypherParser::OC_ExpressionContext* elements : ctx->oC_Expression())
+        {
+          distinct->addElements(any_cast<ASTNode*>(visitOC_Expression(elements)));
+        }
+        aug->addElements(distinct);
+        node->addElements(aug);
+        return static_cast<ASTNode*>(node);
+      }
+
+      for(CypherParser::OC_ExpressionContext* elements : ctx->oC_Expression())
+      {
+        aug->addElements(any_cast<ASTNode*>(visitOC_Expression(elements)));
+      }
+      if(!aug->elements.empty())
+      {
+        node->addElements(aug);
+      }
+      return static_cast<ASTNode*>(node);
     }
 
+  //finished
     std::any visitOC_FunctionName(CypherParser::OC_FunctionNameContext *ctx) override {
-      return visitChildren(ctx);
+      auto *node = new ASTInternalNode("FUNCTION");
+      node->addElements(any_cast<ASTNode*>(visitOC_Namespace(ctx->oC_Namespace())));
+      auto *name = new ASTLeafValue("FUNCTION_NAME", any_cast<string>(visitOC_SymbolicName(ctx->oC_SymbolicName())));
+      node->addElements(name);
+      return static_cast<ASTNode*>(node);
     }
 
+  //finished
     std::any visitOC_ExistentialSubquery(CypherParser::OC_ExistentialSubqueryContext *ctx) override {
-      return visitChildren(ctx);
+      auto *node = new ASTInternalNode("EXISTS");
+      if(ctx->oC_RegularQuery())
+      {
+        node->addElements(any_cast<ASTNode*>(visitOC_RegularQuery(ctx->oC_RegularQuery())));
+        return static_cast<ASTNode*>(node);
+      }else
+      {
+        node->addElements(any_cast<ASTNode*>(visitOC_Pattern(ctx->oC_Pattern())));
+        if(ctx->oC_Where())
+        {
+          node->addElements(any_cast<ASTNode*>(visitOC_Where(ctx->oC_Where())));
+        }
+        return static_cast<ASTNode*>(node);
+      }
     }
 
   //finished
@@ -1136,8 +1284,11 @@ public:
       return static_cast<ASTNode*>(node);
     }
 
+  //finished
     std::any visitOC_ImplicitProcedureInvocation(CypherParser::OC_ImplicitProcedureInvocationContext *ctx) override {
-      return visitChildren(ctx);
+      auto *node = new ASTInternalNode("IMPLICIT_PROCEDURE");
+      node->addElements(any_cast<ASTNode*>(visitOC_ProcedureName(ctx->oC_ProcedureName())));
+      return static_cast<ASTNode*>(node);
     }
 
   //finished
@@ -1156,6 +1307,7 @@ public:
     }
 
 
+  //finished
     std::any visitOC_Namespace(CypherParser::OC_NamespaceContext *ctx) override {
       auto *node = new ASTInternalNode("NAMESPACE");
       for(CypherParser::OC_SymbolicNameContext* element : ctx->oC_SymbolicName())
@@ -1166,6 +1318,7 @@ public:
       return static_cast<ASTNode*>(node);
     }
 
+  //finished
     std::any visitOC_Variable(CypherParser::OC_VariableContext *ctx) override {
       auto *node = new ASTLeafValue("VARIABLE", any_cast<string>(visitOC_SymbolicName(ctx->oC_SymbolicName())));
       return static_cast<ASTNode*>(node);
@@ -1196,9 +1349,19 @@ public:
       }
     }
 
+  //finished
     std::any visitOC_BooleanLiteral(CypherParser::OC_BooleanLiteralContext *ctx) override {
-      return visitChildren(ctx);
+      if(ctx->TRUE())
+      {
+        auto *node = new ASTLeafValue("BOOLEAN", "TRUE");
+        return static_cast<ASTNode*>(node);
+      } else
+      {
+        auto *node = new ASTLeafValue("BOOLEAN", "FALSE");
+        return static_cast<ASTNode*>(node);
+      }
     }
+
   //finished
     std::any visitOC_NumberLiteral(CypherParser::OC_NumberLiteralContext *ctx) override {
       if(ctx->oC_DoubleLiteral())
@@ -1239,8 +1402,14 @@ public:
       }
     }
 
+  //finished
     std::any visitOC_ListLiteral(CypherParser::OC_ListLiteralContext *ctx) override {
-      return visitChildren(ctx);
+      auto *node = new ASTInternalNode("LIST");
+      for(CypherParser::OC_ExpressionContext* element: ctx->oC_Expression())
+      {
+        node->addElements(any_cast<ASTNode*>(visitOC_Expression(element)));
+      }
+      return static_cast<ASTNode*>(node);
     }
 
   //finished
@@ -1262,9 +1431,17 @@ public:
       return visitOC_SchemaName(ctx->oC_SchemaName());
     }
 
-
+  //finished
     std::any visitOC_Parameter(CypherParser::OC_ParameterContext *ctx) override {
-      return visitChildren(ctx);
+      if(ctx->oC_SymbolicName())
+      {
+        auto *node = new ASTLeafValue("PARAMETER", any_cast<string>(visitOC_SymbolicName(ctx->oC_SymbolicName())));
+        return static_cast<ASTNode*>(node);
+      }else
+      {
+        auto *node = new ASTLeafValue("PARAMETER", ctx->getText());
+        return static_cast<ASTNode*>(node);
+      }
     }
 
   //finished
@@ -1288,14 +1465,17 @@ public:
       return ctx->getText();
     }
 
+  //finished
     std::any visitOC_LeftArrowHead(CypherParser::OC_LeftArrowHeadContext *ctx) override {
-      return visitChildren(ctx);
+      return static_cast<ASTNode*>(new ASTLeafNoValue("LEFT_ARRROW"));
     }
 
+  //finished
     std::any visitOC_RightArrowHead(CypherParser::OC_RightArrowHeadContext *ctx) override {
-      return visitChildren(ctx);
+      return static_cast<ASTNode*>(new ASTLeafNoValue("RIGHT_ARROW"));;
     }
 
+  //finished
     std::any visitOC_Dash(CypherParser::OC_DashContext *ctx) override {
       return visitChildren(ctx);
     }
