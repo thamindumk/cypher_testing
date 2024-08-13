@@ -87,3 +87,6 @@ MATCH (n:Person) RETURN {name: n.name, age: n.age} AS personDetails;
 RETURN 'Hello, World!' AS greeting;
 
 RETURN 42 AS answer;
+
+MATCH (a:Person)-[:KNOWS*1..2]->(b:Person) WHERE a.name = 'Alice' RETURN a.name AS person1, b.name AS person2
+

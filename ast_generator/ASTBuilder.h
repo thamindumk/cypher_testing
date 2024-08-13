@@ -944,6 +944,7 @@ public:
     std::any visitOC_PowerOfExpression(CypherParser::OC_PowerOfExpressionContext *ctx) override {
       if(ctx->oC_UnaryAddOrSubtractExpression().size()>1)
       {
+        int unaryIndex = 1;
         auto *node = new ASTInternalNode("POWER_OF");
         node->addElements(any_cast<ASTNode*>(visitOC_UnaryAddOrSubtractExpression(ctx->oC_UnaryAddOrSubtractExpression(0))));
 
@@ -952,7 +953,7 @@ public:
           if(ctx->children[i]->getText() == "^")
           {
             auto *plus = new ASTInternalNode("^");
-            plus->addElements(any_cast<ASTNode*>(visitOC_UnaryAddOrSubtractExpression(ctx->oC_UnaryAddOrSubtractExpression(i))));
+            plus->addElements(any_cast<ASTNode*>(visitOC_UnaryAddOrSubtractExpression(ctx->oC_UnaryAddOrSubtractExpression(unaryIndex++))));
             node->addElements(plus);
           }
         }
