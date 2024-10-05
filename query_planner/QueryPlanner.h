@@ -11,7 +11,10 @@ public:
     ~QueryPlanner() = default;
 
     Operator* createExecutionPlan(ASTNode* ast, Operator* op = nullptr, string var = "");
-    Operator* optimizePlan(Operator* root);
+    bool isAllChildAreGivenType(string nodeType, ASTNode* root);
+    bool isAvailable(string nodeType, ASTNode* subtree);
+    vector<ASTNode*> getSubTreeListByNodeType(ASTNode* root, string nodeType);
+    ASTNode* getSubtreeByType(ASTNode* root, string nodeType);
 };
 
 #endif // QUERY_PLANNER_H

@@ -34,6 +34,7 @@ add_executable(cypher main.cpp ${GENERATED_SRC}
         query_planner/Operators.cpp
         query_planner/Operators.h
         query_planner/Operators.cpp
+        util/Const.cpp
 )
 
 # Link the ANTLR4 runtime

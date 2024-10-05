@@ -1,178 +1,247 @@
 // QueryPlanner.cpp
 #include "QueryPlanner.h"
-
+#include "../util/Const.h"
 
 Operator* QueryPlanner::createExecutionPlan(ASTNode* ast, Operator* op, string var) {
-    cout<<ast->nodeType<<endl;
+
     Operator* oprtr = op;
     // Example: Create a simple execution plan based on the AST
-    if(ast->nodeType == "UNION")
+    if(ast->nodeType == Const::UNION)
     {
 
-    }else if(ast->nodeType == "ALL")
+    }else if(ast->nodeType == Const::ALL)
     {
 
-    }else if(ast->nodeType == "SINGLE_QUERY")
+    }else if(ast->nodeType == Const::SINGLE_QUERY)
     {
         for(int i = 0; i< ast->elements.size(); i++)
         {
             oprtr = createExecutionPlan(ast->elements[i],oprtr);
         }
-    }else if(ast->nodeType == "MULTI_PART_QUERY")
+    }else if(ast->nodeType == Const::MULTI_PART_QUERY)
     {
         for(int i = 0; i< ast->elements.size(); i++)
         {
             oprtr = createExecutionPlan(ast->elements[i],oprtr);
         }
-    }else if(ast->nodeType == "MATCH")
+    }else if(ast->nodeType == Const::MATCH)
     {
-        oprtr = createExecutionPlan(ast->elements[0]->elements[0],oprtr);
-    }else if(ast->nodeType == "OPTIONAL")
-    {
-
-    }else if(ast->nodeType == "UNWIND")
-    {
-
-    }else if(ast->nodeType == "AS")
+        for(int i = 0; i< ast->elements.size(); i++)
+        {
+            oprtr = createExecutionPlan(ast->elements[i],oprtr);
+        }
+    }else if(ast->nodeType == Const::OPTIONAL)
     {
 
-    }else if(ast->nodeType == "MERGE")
+    }else if(ast->nodeType == Const::UNWIND)
     {
 
-    }else if(ast->nodeType == "ON_CREATE")
+    }else if(ast->nodeType == Const::AS)
     {
 
-    }else if(ast->nodeType == "ON_MATCH")
+    }else if(ast->nodeType == Const::MERGE)
     {
 
-    }else if(ast->nodeType == "CREATE")
+    }else if(ast->nodeType == Const::ON_CREATE)
     {
 
-    }else if(ast->nodeType == "MULTIPLE_SET")
+    }else if(ast->nodeType == Const::ON_MATCH)
     {
 
-    }else if(ast->nodeType == "SET")
+    }else if(ast->nodeType == Const::CREATE)
     {
 
-    }else if(ast->nodeType == "SET_+=")
+    }else if(ast->nodeType == Const::MULTIPLE_SET)
     {
 
-    }else if(ast->nodeType == "SET_=")
+    }else if(ast->nodeType == Const::SET)
     {
 
-    }else if(ast->nodeType == "SET")
+    }else if(ast->nodeType == Const::SET_PLUS_EQAL)
     {
 
-    }else if(ast->nodeType == "DELETE")
+    }else if(ast->nodeType == Const::SET_EUAL)
     {
 
-    }else if(ast->nodeType == "DETACH")
+    }else if(ast->nodeType == Const::DELETE)
     {
 
-    }else if(ast->nodeType == "REMOVE_LIST")
+    }else if(ast->nodeType == Const::DETACH)
     {
 
-    }else if(ast->nodeType == "REMOVE")
+    }else if(ast->nodeType == Const::REMOVE_LIST)
     {
 
-    }else if(ast->nodeType == "CALL")
+    }else if(ast->nodeType == Const::REMOVE)
     {
 
-    }else if(ast->nodeType == "*")
+    }else if(ast->nodeType == Const::CALL)
     {
 
-    }else if(ast->nodeType == "YIELD_ITEMS")
+    }else if(ast->nodeType == Const::STAR)
     {
 
-    }else if(ast->nodeType == "YIELD")
+    }else if(ast->nodeType == Const::YIELD_ITEMS)
     {
 
-    }else if(ast->nodeType == "WITH")
+    }else if(ast->nodeType == Const::YIELD)
     {
 
-    }else if(ast->nodeType == "RETURN")
+    }else if(ast->nodeType == Const::WITH)
+    {
+
+    }else if(ast->nodeType == Const::RETURN)
     {
         oprtr = createExecutionPlan(ast->elements[0],oprtr);
-    }else if(ast->nodeType == "DISTINCT")
+    }else if(ast->nodeType == Const::DISTINCT)
     {
 
-    }else if(ast->nodeType == "RETURN_BODY")
+    }else if(ast->nodeType == Const::RETURN_BODY)
     {
-        if(ast->elements[0]->nodeType == "VARIABLE")
+        vector<ASTNode*> var;
+        if(isAllChildAreGivenType(Const::VARIABLE, ast))
         {
-            return new ProduceResults(ast->elements[0]->value, oprtr);
+            return new ProduceResults(op, var);
         }
-    }else if(ast->nodeType == "ORDERED_BY")
+
+        vector<ASTNode*> nonArith = getSubTreeListByNodeType(ast,Const::NON_ARITHMETIC_OPERATOR);
+        vector<ASTNode*> property;
+        Operator* temp_opt = nullptr;
+        
+        if(!nonArith.empty())
+        {
+            for(auto* node: nonArith)
+            {
+                if(isAvailable(Const::PROPERTY_LOOKUP, node))
+                {
+                    property.push_back(node);
+                }
+            }
+            if(!property.empty())
+            {
+                temp_opt = new CacheProperty(oprtr,property);
+            }
+        }
+
+        if(temp_opt!=nullptr)
+        {
+            temp_opt = new Projection(temp_opt, ast->elements);
+        }else
+        {
+            temp_opt = new Projection(oprtr, ast->elements);
+        }
+
+        return new ProduceResults(temp_opt, vector<ASTNode*>(ast->elements));
+
+
+
+    }else if(ast->nodeType == Const::ORDERED_BY)
     {
 
-    }else if(ast->nodeType == "SKIP")
+    }else if(ast->nodeType == Const::SKIP)
     {
 
-    }else if(ast->nodeType == "LIMIT")
+    }else if(ast->nodeType == Const::LIMIT)
     {
 
-    }else if(ast->nodeType == "ASC")
+    }else if(ast->nodeType == Const::ASC)
     {
 
-    }else if(ast->nodeType == "DESC")
+    }else if(ast->nodeType == Const::DESC)
     {
 
-    }else if(ast->nodeType == "WHERE")
+    }else if(ast->nodeType == Const::WHERE)
     {
-
-    }else if(ast->nodeType == "PATTERN")
+        return new Filter(op, ast);
+    }else if(ast->nodeType == Const::PATTERN)
     {
         oprtr = createExecutionPlan(ast->elements[0],oprtr);
 
-    }else if(ast->nodeType == "PATTERN_ELEMENTS")
+    }else if(ast->nodeType == Const::PATTERN_ELEMENTS)
     {
-
-    }else if(ast->nodeType == "NODE_PATTERN")
-    {
-        int size = ast->elements.size();
-        bool isVar = ast->elements[0]->nodeType == "VARIABLE";
-        string var_0 = isVar ? ast->elements[0]->value : "";
-
-        if(ast->elements[0]->nodeType == "VARIABLE" && size == 1)
+        vector<ASTNode*> patternElements = getSubTreeListByNodeType(ast, Const::PATTERN_ELEMENT_CHAIN);
+        int strat;
+        for(int i=patternElements.size()-1;i>=0;i--)
         {
-            return new AllNodeScan(ast->elements[0]->value);
-        }else if(ast->elements[0]->nodeType == "NODE_LABELS" && size == 1)
-        {
-            oprtr = createExecutionPlan(ast->elements[0], oprtr);
-        }else if(ast->elements[0]->nodeType == "NODE_LABEL" && size == 1)
-        {
-            oprtr = createExecutionPlan(ast->elements[0], oprtr);
-        }else if(ast->elements[0]->nodeType == "PROPERTY_MAP" && size == 1)
-        {
-            oprtr = createExecutionPlan(ast->elements[0], oprtr);
-        }else if(ast->elements[1]->nodeType == "NODE_LABELS" && size == 2 && isVar)
-        {
-            oprtr = createExecutionPlan(ast->elements[1], oprtr, var_0);
-        }else if(ast->elements[1]->nodeType == "NODE_LABEL" && size == 2 && isVar)
-        {
-            oprtr = createExecutionPlan(ast->elements[1], oprtr, var_0);
-
-        }else if(ast->elements[1]->nodeType == "PROPERTY_MAP" && size == 1 && isVar)
-        {
-            oprtr = createExecutionPlan(ast->elements[1], oprtr, var_0);
+            auto* e = patternElements[i];
+            if(!e->elements[0]->elements[1]->elements.empty()
+                && isAvailable(Const::RELATIONSHIP_TYPE,e->elements[0]->elements[1])
+                && e->elements[0]->elements[0]->nodeType == Const::UNIDIRECTION_ARROW)
+            {
+                oprtr = new UndirectedRelationshipTypeScan()
+            }
         }
 
-    }else if(ast->nodeType == "PATTERN_ELEMENT_CHAIN")
+    }else if(ast->nodeType == Const::NODE_PATTERN)
+    {
+        if(ast->elements.empty())
+        {
+            return new AllNodeScan();
+        }
+
+        if(isAvailable(Const::PROPERTIES_MAP,ast))
+        {
+            if(isAvailable(Const::NODE_LABEL,ast) && isAvailable(Const::VARIABLE, ast))
+            {
+                oprtr = new NodeScanByLabel(ast->elements[1]->value,ast->elements[0]->value);
+                return new Filter(oprtr, ast->elements[2]);
+            }else if(!isAvailable(Const::NODE_LABEL,ast) && !isAvailable(Const::NODE_LABELS,ast) && isAvailable(Const::VARIABLE, ast))
+            {
+                oprtr = new AllNodeScan(ast->elements[0]->value);
+                return new Filter(oprtr, ast->elements[1]);
+            }else if(isAvailable(Const::NODE_LABEL,ast) && !isAvailable(Const::VARIABLE, ast))
+            {
+                oprtr = new NodeScanByLabel(ast->elements[0]->value);
+                return new Filter(oprtr, ast->elements[1]);
+            }else if(isAvailable(Const::NODE_LABELS,ast) && isAvailable(Const::VARIABLE, ast))
+            {
+                oprtr = createExecutionPlan(ast->elements[1],oprtr);
+                return new Filter(oprtr, ast->elements[2]);
+            }else if(isAvailable(Const::NODE_LABELS,ast) && !isAvailable(Const::VARIABLE, ast))
+            {
+                oprtr = createExecutionPlan(ast->elements[0],oprtr);
+                return new Filter(oprtr, ast->elements[1]);
+            }
+        }else
+        {
+            if( !isAvailable(Const::NODE_LABEL,ast) && !isAvailable(Const::NODE_LABELS,ast) && isAvailable(Const::VARIABLE, ast))
+            {
+                return new AllNodeScan(ast->elements[0]->value);
+
+            }else if(isAvailable(Const::VARIABLE, ast) && ast->elements[1]->nodeType == Const::NODE_LABEL)
+            {
+                return new NodeScanByLabel(ast->elements[1]->value,ast->elements[0]->value);
+
+            }else if(!isAvailable(Const::VARIABLE, ast) && ast->elements[0]->nodeType == Const::NODE_LABEL)
+            {
+                return new NodeScanByLabel(ast->elements[0]->value);
+
+            }else if(isAvailable(Const::NODE_LABELS,ast) && isAvailable(Const::VARIABLE, ast))
+            {
+                return createExecutionPlan(ast->elements[1],oprtr);
+
+            }else if(isAvailable(Const::NODE_LABELS,ast) && !isAvailable(Const::VARIABLE, ast))
+            {
+                return createExecutionPlan(ast->elements[0],oprtr);
+            }
+        }
+
+    }else if(ast->nodeType == Const::PATTERN_ELEMENT_CHAIN)
     {
 
-    }else if(ast->nodeType == "RELATIONSHIP_PATTTERN")
+    }else if(ast->nodeType == Const::RELATIONSHIP_PATTTERN)
     {
 
-    }else if(ast->nodeType == "UNIDIRECTION_ARROW")
+    }else if(ast->nodeType == Const::UNIDIRECTION_ARROW)
     {
 
-    }else if(ast->nodeType == "RELATIONSHIP_DETAILS")
+    }else if(ast->nodeType == Const::RELATIONSHIP_DETAILS)
     {
 
-    }else if(ast->nodeType == "RELATIONSHIP_TYPES")
+    }else if(ast->nodeType == Const::RELATIONSHIP_TYPES)
     {
 
-    }else if(ast->nodeType == "NODE_LABELS")
+    }else if(ast->nodeType == Const::NODE_LABELS)
     {
 
         vector<string> labels;
@@ -183,252 +252,252 @@ Operator* QueryPlanner::createExecutionPlan(ASTNode* ast, Operator* op, string v
         }
         return new MultipleNodeScanByLabel(labels, var_0);
 
-    }else if(ast->nodeType == "NODE_LABEL")
+    }else if(ast->nodeType == Const::NODE_LABEL)
     {
         string var_0 = var != "" ? var : "var_0";
         return new NodeScanByLabel(ast->elements[0]->value, var_0);
 
-    }else if(ast->nodeType == "RANGE")
+    }else if(ast->nodeType == Const::RANGE)
     {
 
-    }else if(ast->nodeType == "PROPERTY")
+    }else if(ast->nodeType == Const::PROPERTY)
     {
 
-    }else if(ast->nodeType == "OR")
+    }else if(ast->nodeType == Const::OR)
     {
 
-    }else if(ast->nodeType == "XOR")
+    }else if(ast->nodeType == Const::XOR)
     {
 
-    }else if(ast->nodeType == "AND")
+    }else if(ast->nodeType == Const::AND)
     {
 
-    }else if(ast->nodeType == "NOT")
+    }else if(ast->nodeType == Const::NOT)
     {
 
-    }else if(ast->nodeType == "COMPARISON")
+    }else if(ast->nodeType == Const::COMPARISON)
     {
 
-    }else if(ast->nodeType == ">")
+    }else if(ast->nodeType == Const::GREATER_THAN)
     {
 
-    }else if(ast->nodeType == "<>")
+    }else if(ast->nodeType == Const::GREATER_THAN_LOWER_THAN)
     {
 
-    }else if(ast->nodeType == "==")
+    }else if(ast->nodeType == Const::DOUBLE_EQUAL)
     {
 
-    }else if(ast->nodeType == "<")
+    }else if(ast->nodeType == Const::LOWER_THAN)
     {
 
-    }else if(ast->nodeType == ">=")
+    }else if(ast->nodeType == Const::GREATER_THAN_OR_EQUAL)
     {
 
-    }else if(ast->nodeType == "<=")
+    }else if(ast->nodeType == Const::LOWER_THAN_OR_EQUAL)
     {
 
-    }else if(ast->nodeType == "PREDICATE_EXPRESSIONS")
+    }else if(ast->nodeType == Const::PREDICATE_EXPRESSIONS)
     {
 
-    }else if(ast->nodeType == "STRING_PREDICATES")
+    }else if(ast->nodeType == Const::STRING_PREDICATES)
     {
 
-    }else if(ast->nodeType == "LIST_PREDICATES")
+    }else if(ast->nodeType == Const::LIST_PREDICATES)
     {
 
-    }else if(ast->nodeType == "NULL_PREDICATES")
+    }else if(ast->nodeType == Const::NULL_PREDICATES)
     {
 
-    }else if(ast->nodeType == "STARTS_WITH")
+    }else if(ast->nodeType == Const::STARTS_WITH)
     {
 
-    }else if(ast->nodeType == "ENDS_WITH")
+    }else if(ast->nodeType == Const::ENDS_WITH)
     {
 
-    }else if(ast->nodeType == "CONTAINS")
+    }else if(ast->nodeType == Const::CONTAINS)
     {
 
-    }else if(ast->nodeType == "IN")
+    }else if(ast->nodeType == Const::IN)
     {
 
-    }else if(ast->nodeType == "IS_NOT_NULL")
+    }else if(ast->nodeType == Const::IS_NOT_NULL)
     {
 
-    }else if(ast->nodeType == "IS_NULL")
+    }else if(ast->nodeType == Const::IS_NULL)
     {
 
-    }else if(ast->nodeType == "ADD_OR_SUBSTRACT")
+    }else if(ast->nodeType == Const::ADD_OR_SUBSTRACT)
     {
 
-    }else if(ast->nodeType == "+")
+    }else if(ast->nodeType == Const::PLUS)
     {
 
-    }else if(ast->nodeType == "-")
+    }else if(ast->nodeType == Const::MINUS)
     {
 
-    }else if(ast->nodeType == "MULTIPLY_DIVID_MODULO")
+    }else if(ast->nodeType == Const::MULTIPLY_DIVID_MODULO)
     {
 
-    }else if(ast->nodeType == "*")
+    }else if(ast->nodeType == Const::STAR)
     {
 
-    }else if(ast->nodeType == "/")
+    }else if(ast->nodeType == Const::DIVIDE)
     {
 
-    }else if(ast->nodeType == "POWER_OF")
+    }else if(ast->nodeType == Const::POWER_OF)
     {
 
-    }else if(ast->nodeType == "^")
+    }else if(ast->nodeType == Const::POWER)
     {
 
-    }else if(ast->nodeType == "UNARY_+")
+    }else if(ast->nodeType == Const::UNARY_PLUS)
     {
 
-    }else if(ast->nodeType == "UNARY_-")
+    }else if(ast->nodeType == Const::UNARY_MINUS)
     {
 
-    }else if(ast->nodeType == "NON_ARITHMETIC_OPERATOR")
+    }else if(ast->nodeType == Const::NON_ARITHMETIC_OPERATOR)
     {
 
-    }else if(ast->nodeType == "LIST_INDEX_RANGE")
+    }else if(ast->nodeType == Const::LIST_INDEX_RANGE)
     {
 
-    }else if(ast->nodeType == "LIST_INDEX")
+    }else if(ast->nodeType == Const::LIST_INDEX)
     {
 
-    }else if(ast->nodeType == "PROPERTY_LOOKUP")
+    }else if(ast->nodeType == Const::PROPERTY_LOOKUP)
     {
 
-    }else if(ast->nodeType == "COUNT")
+    }else if(ast->nodeType == Const::COUNT)
     {
 
-    }else if(ast->nodeType == "CASE_PATTERN")
+    }else if(ast->nodeType == Const::CASE_PATTERN)
     {
 
-    }else if(ast->nodeType == "CASE_EXPRESSION")
+    }else if(ast->nodeType == Const::CASE_EXPRESSION)
     {
 
-    }else if(ast->nodeType == "ELSE_EXPRESSION")
+    }else if(ast->nodeType == Const::ELSE_EXPRESSION)
     {
 
-    }else if(ast->nodeType == "CASE")
+    }else if(ast->nodeType == Const::CASE)
     {
 
-    }else if(ast->nodeType == "WHEN")
+    }else if(ast->nodeType == Const::WHEN)
     {
 
-    }else if(ast->nodeType == "THEN")
+    }else if(ast->nodeType == Const::THEN)
     {
 
-    }else if(ast->nodeType == "LIST_COMPREHENSION")
+    }else if(ast->nodeType == Const::LIST_COMPREHENSION)
     {
 
-    }else if(ast->nodeType == "FILTER_RESULT")
+    }else if(ast->nodeType == Const::FILTER_RESULT)
     {
 
-    }else if(ast->nodeType == "PATTERN_COMPREHENSION")
+    }else if(ast->nodeType == Const::PATTERN_COMPREHENSION)
     {
 
-    }else if(ast->nodeType == "=")
+    }else if(ast->nodeType == Const::EQUAL)
     {
 
-    }else if(ast->nodeType == "FILTER_RESULT")
+    }else if(ast->nodeType == Const::FILTER_RESULT)
     {
 
-    }else if(ast->nodeType == "ANY")
+    }else if(ast->nodeType == Const::ANY)
     {
 
-    }else if(ast->nodeType == "NONE")
+    }else if(ast->nodeType == Const::NONE)
     {
 
-    }else if(ast->nodeType == "SINGLE")
+    }else if(ast->nodeType == Const::SINGLE)
     {
 
-    }else if(ast->nodeType == "FILTER_EXPRESSION")
+    }else if(ast->nodeType == Const::FILTER_EXPRESSION)
     {
 
-    }else if(ast->nodeType == "LIST_ITERATE")
+    }else if(ast->nodeType == Const::LIST_ITERATE)
     {
 
-    }else if(ast->nodeType == "FUNCTION_BODY")
+    }else if(ast->nodeType == Const::FUNCTION_BODY)
     {
 
-    }else if(ast->nodeType == "ARGUMENTS")
+    }else if(ast->nodeType == Const::ARGUMENTS)
     {
 
-    }else if(ast->nodeType == "FUNCTION_NAME")
+    }else if(ast->nodeType == Const::FUNCTION_NAME)
     {
 
-    }else if(ast->nodeType == "FUNCTION")
+    }else if(ast->nodeType == Const::FUNCTION)
     {
 
-    }else if(ast->nodeType == "EXISTS")
+    }else if(ast->nodeType == Const::EXISTS)
     {
 
-    }else if(ast->nodeType == "EXPLICIT_PROCEDURE")
+    }else if(ast->nodeType == Const::EXPLICIT_PROCEDURE)
     {
 
-    }else if(ast->nodeType == "IMPLICIT_PROCEDURE")
+    }else if(ast->nodeType == Const::IMPLICIT_PROCEDURE)
     {
 
-    }else if(ast->nodeType == "PROCEDURE_RESULT")
+    }else if(ast->nodeType == Const::PROCEDURE_RESULT)
     {
 
-    }else if(ast->nodeType == "PROCEDURE")
+    }else if(ast->nodeType == Const::PROCEDURE)
     {
 
-    }else if(ast->nodeType == "NAMESPACE")
+    }else if(ast->nodeType == Const::NAMESPACE)
     {
 
-    }else if(ast->nodeType == "VARIABLE")
+    }else if(ast->nodeType == Const::VARIABLE)
     {
 
-    }else if(ast->nodeType == "NULL")
+    }else if(ast->nodeType == Const::NULL_STRING)
     {
 
-    }else if(ast->nodeType == "STRING")
+    }else if(ast->nodeType == Const::STRING)
     {
 
-    }else if(ast->nodeType == "BOOLEAN")
+    }else if(ast->nodeType == Const::BOOLEAN)
     {
 
-    }else if(ast->nodeType == "DECIMAL")
+    }else if(ast->nodeType == Const::DECIMAL)
     {
 
-    }else if(ast->nodeType == "HEX")
+    }else if(ast->nodeType == Const::HEX)
     {
 
-    }else if(ast->nodeType == "OCTAL")
+    }else if(ast->nodeType == Const::OCTAL)
     {
 
-    }else if(ast->nodeType == "EXP_DECIMAL")
+    }else if(ast->nodeType == Const::EXP_DECIMAL)
     {
 
-    }else if(ast->nodeType == "REGULAR_DECIMAL")
+    }else if(ast->nodeType == Const::REGULAR_DECIMAL)
     {
 
-    }else if(ast->nodeType == "LIST")
+    }else if(ast->nodeType == Const::LIST)
     {
 
-    }else if(ast->nodeType == "PROPERIES_MAP")
+    }else if(ast->nodeType == Const::PROPERTIES_MAP)
     {
-
-    }else if(ast->nodeType == "PROPERTY")
+        return new Filter(op,ast);
+    }else if(ast->nodeType == Const::PROPERTY)
     {
 
-    }else if(ast->nodeType == "PARAMETER")
+    }else if(ast->nodeType == Const::PARAMETER)
     {
 
-    }else if(ast->nodeType == "SYMBOLIC_WORD")
+    }else if(ast->nodeType == Const::SYMBOLIC_WORD)
     {
 
-    }else if(ast->nodeType == "RESERVED_WORD")
+    }else if(ast->nodeType == Const::RESERVED_WORD)
     {
 
-    }else if(ast->nodeType == "LEFT_ARRROW")
+    }else if(ast->nodeType ==  Const::LEFT_ARRROW)
     {
 
-    }else if(ast->nodeType == "RIGHT_ARROW")
+    }else if(ast->nodeType == Const::RIGHT_ARROW)
     {
 
     }
@@ -436,8 +505,67 @@ Operator* QueryPlanner::createExecutionPlan(ASTNode* ast, Operator* op, string v
     return oprtr;
 }
 
-Operator* QueryPlanner::optimizePlan(Operator* root) {
-    // Placeholder for optimization logic
-    std::cout << "Optimizing the execution plan..." << std::endl;
-    return root; // Return the original plan for now
+bool QueryPlanner::isAllChildAreGivenType(string nodeType, ASTNode* root)
+{
+    for(int i=0;i<root->elements.size(); i++)
+    {
+        if(root->elements[i]->nodeType != nodeType )
+        {
+            return false;
+        }
+    }
+    return true;
 }
+
+bool QueryPlanner::isAvailable(string nodeType, ASTNode* subtree)
+{
+    if(subtree->nodeType == nodeType)
+    {
+        return true;
+    }else
+    {
+        for(auto* element: subtree->elements)
+        {
+            bool isExist = isAvailable(nodeType,element);
+            if(isExist)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+vector<ASTNode*> QueryPlanner::getSubTreeListByNodeType(ASTNode* root, string nodeType)
+{
+    vector<ASTNode*> treeList;
+    vector<ASTNode*> temp;
+    for(auto* element : root->elements)
+    {
+        if(getSubtreeByType(element,nodeType))
+        {
+            treeList.push_back(element);
+        }else if(!element->elements.empty())
+        {
+            temp = getSubTreeListByNodeType(element,nodeType);
+            for (auto* e:temp) {
+                treeList.push_back(e);
+            }
+            temp.clear();
+        }
+    }
+    return treeList;
+}
+
+ASTNode* QueryPlanner::getSubtreeByType(ASTNode* root, string nodeType)
+{
+    if(root->nodeType == nodeType)
+    {
+        return root;
+    }else
+    {
+        return nullptr;
+    }
+}
+
+
