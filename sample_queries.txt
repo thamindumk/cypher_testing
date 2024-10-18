@@ -90,3 +90,38 @@ RETURN 42 AS answer;
 
 MATCH (a:Person)-[:KNOWS*1..2]->(b:Person) WHERE a.name = 'Alice' RETURN a.name AS person1, b.name AS person2
 
+└───SINGLE_QUERY:
+    ├──MATCH:
+    │   └───PATTERN:
+    │       └───NODE_PATTERN:
+    │           ├──VARIABLE: n
+    │           └───PROPERIES_MAP:
+    │               └───PROPERTY:
+    │                   ├──SYMBOLIC_WORD: name
+    │                   └───STRING: 'thamindu'
+    └───RETURN:
+        └───RETURN_BODY:
+            └───NON_ARITHMETIC_OPERATOR:
+                ├──VARIABLE: n
+                └───PROPERTY_LOOKUP:
+                    └───SYMBOLIC_WORD: age
+
+|───SINGLE_QUERY:
+    ├──MATCH:
+    │   ├──PATTERN:
+    │   │   └───NODE_PATTERN:
+    │   │       └───VARIABLE: n
+    │   └───WHERE:
+    │       └───COMPARISON:
+    │           ├──NON_ARITHMETIC_OPERATOR:
+    │           │   ├──VARIABLE: n
+    │           │   └───PROPERTY_LOOKUP:
+    │           │       └───SYMBOLIC_WORD: name
+    │           └───==:
+    │               └───STRING: 'thamindu'
+    └───RETURN:
+        └───RETURN_BODY:
+            └───NON_ARITHMETIC_OPERATOR:
+                ├──VARIABLE: n
+                └───PROPERTY_LOOKUP:
+                    └───SYMBOLIC_WORD: age
