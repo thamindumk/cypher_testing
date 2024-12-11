@@ -18,7 +18,7 @@ public:
 // NodeScanByLabel Operator
 class NodeScanByLabel : public Operator {
 public:
-    NodeScanByLabel(const string& label, const string& var = "var_0");
+    NodeScanByLabel(string label, string var = "var_0");
     void execute() override;
 
 private:
@@ -202,12 +202,26 @@ private:
 class UndirectedAllRelationshipScan : public Operator {
 public:
     
-    UndirectedAllRelationshipScan( string startVar = "var_0", string endVar = "var_1");
+    UndirectedAllRelationshipScan( string startVar = "var_0", string endVar = "var_1", string relVar = "edge_var_0");
     void execute() override;
 
 private:
     string startVar; // Variable name for the start node
     string endVar;   // Variable name for the end node
+    string relVar;
+};
+
+class DirectedAllRelationshipScan : public Operator {
+public:
+
+    DirectedAllRelationshipScan( string direction, string startVar = "var_0", string endVar = "var_1", string relVar = "edge_var_0");
+    void execute() override;
+
+private:
+    string startVar; // Variable name for the start node
+    string endVar;   // Variable name for the end node
+    string relVar;
+    string direction;
 };
 
 class DirectedRelationshipTypeScan : public Operator {
@@ -224,6 +238,20 @@ private:
     string startVar; // Variable name for the start node
     string endVar;   // Variable name for the end node
     string relvar;
+};
+
+class Apply : public Operator {
+public:
+    // Constructor
+    Apply(Operator* opr);
+    void addOperator(Operator* opr);
+
+    // Execute method to perform the scan
+    void execute() override;
+
+private:
+    Operator* opr1;
+    Operator* opr2;
 };
 
 void printDownArrow(int width);

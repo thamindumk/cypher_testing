@@ -4,7 +4,7 @@
 #include "../util/Const.h"
 using namespace std;
 // NodeScan Implementation
-NodeScanByLabel::NodeScanByLabel(const string& label, const string& var) : label(label), var(var) {}
+NodeScanByLabel::NodeScanByLabel(string label, string var) : label(label), var(var) {}
 
 void NodeScanByLabel::execute() {
     cout<<"NodeScanByLabel: \n"<<endl;
@@ -39,7 +39,9 @@ void AllNodeScan::execute() {
 ProduceResults::ProduceResults(Operator* opr, vector<ASTNode*> item) : item(item), op(opr) {}
 
 void ProduceResults::execute() {
-    op->execute();
+    if(op){
+        op->execute();
+    }
     cout<<"ProduceResults: \n"<<endl;
 
     for(auto* e: item)
@@ -196,22 +198,19 @@ void UndirectedRelationshipTypeScan::execute() {
 
 }
 
-UndirectedAllRelationshipScan::UndirectedAllRelationshipScan(string startVar, string endVar)
-    : startVar(startVar), endVar(endVar) {}
+UndirectedAllRelationshipScan::UndirectedAllRelationshipScan(string startVar, string endVar, string relVar)
+    : startVar(startVar), endVar(endVar), relVar(relVar) {}
 
 
 void UndirectedAllRelationshipScan::execute() {
-     cout << "Executing UndirectedAllRelationshipScan for all relationship types." <<  endl;
-     cout << "Start variable: " << startVar << ", End variable: " << endVar <<  endl;
-
-   
+    cout<<"UndirectedRelationshipTypeScan: \n"<<endl;
+    cout << "("<<startVar<<") -[" << relVar<<"]- (" << endVar << ")" << endl;
 }
 
 DirectedRelationshipTypeScan::DirectedRelationshipTypeScan(string direction, string relType, string relvar, string startVar, string endVar)
         : relType(relType), relvar(relvar), startVar(startVar), endVar(endVar), direction(direction) {
 
 }
-
 
 // Execute method
 void DirectedRelationshipTypeScan::execute() {
@@ -221,6 +220,19 @@ void DirectedRelationshipTypeScan::execute() {
         cout << "("<<startVar<<") -[" << relvar<<" :"<< relType << "]-> (" << endVar << ")" << endl;
     }else{
         cout << "("<<startVar<<") <-[" << relvar<<" :"<< relType << "]- (" << endVar << ")" << endl;
+    }
+}
+
+DirectedAllRelationshipScan::DirectedAllRelationshipScan(std::string direction, std::string startVar, std::string endVar, std::string relVar)
+        : startVar(startVar), endVar(endVar), relVar(relVar), direction(direction) {}
+
+void DirectedAllRelationshipScan::execute() {
+    cout<<"DirectedAllRelationshipScan: \n"<<endl;
+
+    if(direction == "right"){
+        cout << "("<<startVar<<") -[" << relVar<<"]-> (" << endVar << ")" << endl;
+    }else{
+        cout << "("<<startVar<<") <-[" << relVar<<"]- (" << endVar << ")" << endl;
     }
 }
 
@@ -248,5 +260,26 @@ void ExpandAll::execute() {
     }else if(relType != "null" && direction == "left"){
         cout << "(" << startVar << ") <-[" << relVar << " :" << relType << "]- (" << destVar << ")" << endl;
     }
+}
+
+Apply::Apply(Operator* opr): opr1(opr){}
+
+void Apply::addOperator(Operator *opr) {
+    this->opr2 = opr;
+}
+
+
+// Execute method
+void Apply::execute() {
+    if (opr1 != nullptr){
+        cout<<"     left of Apply"<<endl;
+        opr1->execute();
+    }
+    if (opr2 != nullptr){
+        cout<<"     right of Apply"<<endl;
+        opr2->execute();
+    }
+
+    cout<<"Apply: result merged"<<endl;
 }
 
