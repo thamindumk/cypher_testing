@@ -5,6 +5,8 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <cstdio>
+#include <map>
 
 class ASTNode;
 using namespace std;
@@ -62,6 +64,8 @@ private:
 class Filter : public Operator {
 public:
     Filter(Operator* input, vector<pair<string,ASTNode*>> filterCases);
+    string analyze(ASTNode* ast);
+    string comparisonOperand(ASTNode* ast);
     void execute() override;
 
 private:

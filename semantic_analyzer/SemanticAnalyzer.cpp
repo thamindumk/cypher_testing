@@ -207,7 +207,7 @@ bool SemanticAnalyzer::checkVariableDeclarations(ASTNode* node, string type) {
         return true;
     }
     else {
-        reportError("Varmiable already declared: " + node->value, node);
+        reportError("Variable already declared: " + node->value, node);
         return false;
     }
 

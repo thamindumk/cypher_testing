@@ -2,6 +2,10 @@
 
 #include "../ast_generator/ASTNode.h"
 #include "../util/Const.h"
+#include <vector>
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 using namespace std;
 // NodeScan Implementation
 NodeScanByLabel::NodeScanByLabel(string label, string var) : label(label), var(var) {}
@@ -53,6 +57,86 @@ void ProduceResults::execute() {
 // Filter Implementation
 Filter::Filter(Operator* input, vector<pair<string,ASTNode*>> filterCases) : input(input), filterCases(filterCases) {}
 
+string Filter::comparisonOperand(ASTNode *ast) {
+    json operand;
+    if (ast->nodeType == Const::NON_ARITHMETIC_OPERATOR) {
+        // there are more cases to handle
+        operand["variable"] = ast->elements[0]->value;
+        operand["Type"] = Const::PROPERTY_LOOKUP;
+        vector<string> property;
+        for (auto* prop: ast->elements) {
+            if (prop->nodeType == Const::PROPERTY_LOOKUP && prop->elements[0]->nodeType != Const::RESERVED_WORD) {
+                property.push_back(prop->elements[0]->value);
+            }
+        }
+        operand["property"] = property;
+    } else if (ast->nodeType == Const::PROPERTIES_MAP) {
+        operand["Type"] = Const::PROPERTIES_MAP;
+        map<string, string> property;
+        for (auto* prop: ast->elements) {
+            if (prop->elements[0]->nodeType != Const::RESERVED_WORD){
+                property.insert(pair<string, string>(prop->elements[0]->value, prop->elements[1]->value));
+            }
+        }
+        operand["property"] = property;
+    } else if (ast->nodeType == Const::LIST) {
+        operand["Type"] = Const::LIST;
+        vector<string> element;
+        for (auto* prop: ast->elements) {
+            element.push_back(prop->value);
+        }
+
+        operand["element"] = element;
+    } else {
+        operand["Type"] = ast->nodeType;
+        operand["value"] = ast->value;
+    }
+
+    return operand.dump();
+}
+
+string Filter::analyze(ASTNode* ast) {
+    json where;
+    if (ast->nodeType == Const::OR) {
+        where["Type"] = Const::OR;
+        vector<json> comparisons;
+        for (auto* element: ast->elements) {
+            comparisons.push_back(json::parse(analyze(element)));
+        }
+        where["comparisons"] = comparisons;
+    } else if(ast->nodeType == Const::AND) {
+        where["Type"] = Const::AND;
+        vector<json> comparisons;
+        for (auto* element: ast->elements) {
+            comparisons.push_back(json::parse(analyze(element)));
+        }
+        where["comparisons"] = comparisons;
+    } else if(ast->nodeType == Const::XOR) {
+        where["Type"] = Const::XOR;
+        vector<string> comparisons;
+        for (auto* element: ast->elements) {
+            comparisons.push_back(json::parse(analyze(element)));
+        }
+        where["comparisons"] = comparisons;
+    } else if(ast->nodeType == Const::NOT) {
+        where["Type"] = Const::NOT;
+        vector<json> comparisons;
+        for (auto* element: ast->elements) {
+            comparisons.push_back(json::parse(analyze(element)));
+        }
+        where["comparisons"] = comparisons;
+    } else if(ast->nodeType == Const::COMPARISON) {
+        where["type"] = Const::COMPARISON;
+        auto* left = ast->elements[0];
+        auto* oparator = ast->elements[1];
+        auto* right = oparator->elements[0];
+        where["left"] = json::parse(comparisonOperand(left));
+        where["operator"] = oparator->nodeType;
+        where["right"] = json::parse(comparisonOperand(right));
+    }
+    return where.dump();
+}
+
 void Filter::execute() {
     input->execute();
     cout<<"Filter: \n"<<endl;
@@ -60,7 +144,7 @@ void Filter::execute() {
     for(auto item: filterCases){
         if(item.second->nodeType==Const::WHERE){
             cout<<item.second->print(1)<<endl;
-
+            condition = analyze(item.second->elements[0]);
         }else if(item.second->nodeType==Const::PROPERTIES_MAP){
             for(auto* prop: item.second->elements){
                 condition+=item.first+"."+prop->elements[0]->value+" = "+prop->elements[1]->value;
@@ -92,11 +176,10 @@ Projection::Projection(Operator* input, const vector<ASTNode*> columns) : input(
 
 void Projection::execute() {
     input->execute();
-    cout<<"Projection: \n"<<endl;
 
     cout << "Projecting columns: ";
     for (auto* col : columns) {
-        cout << col->nodeType << " ";
+        cout << col->print()<< endl;
     }
     cout << endl;
 }
@@ -194,8 +277,14 @@ UndirectedRelationshipTypeScan::UndirectedRelationshipTypeScan(string relType, s
 // Execute method
 void UndirectedRelationshipTypeScan::execute() {
     cout<<"UndirectedRelationshipTypeScan: \n"<<endl;
+    json undirected;
+    undirected["operator"] = "UndirectedRelationshipTypeScan";
+    undirected["sourceVariable"] = startVar;
+    undirected["destVariable"] = endVar;
+    undirected["relVariable"] = relvar;
+    undirected["relType"] = relType;
     cout << "("<<startVar<<") -[" << relvar<<" :"<< relType << "]- (" << endVar << ")" << endl;
-
+    cout<<undirected.dump()<<endl;
 }
 
 UndirectedAllRelationshipScan::UndirectedAllRelationshipScan(string startVar, string endVar, string relVar)
@@ -244,22 +333,50 @@ void ExpandAll::execute() {
     cout<<"ExpandAll: \n"<<endl;
 
     string line;
-
+    json expandAll;
+    expandAll["operator"] = "ExpandAll";
     if(relType == "null" && direction == ""){
+        expandAll["sourceVariable"] = startVar;
+        expandAll["destVariable"] = destVar;
+        expandAll["relVariable"] = relVar;
         line = "("+startVar+") -["+relVar+"]- ("+destVar+")";
         cout<<line<<endl;
     }else if(relType != "null" && direction == ""){
+        expandAll["sourceVariable"] = startVar;
+        expandAll["destVariable"] = destVar;
+        expandAll["relVariable"] = relVar;
+        expandAll["relType"] = relType;
         line = "("+startVar+") -["+relVar+" :"+relType+"]- ("+destVar+")";
         cout<<line<<endl;
     }else if(relType == "null" && direction == "right") {
+        expandAll["sourceVariable"] = startVar;
+        expandAll["destVariable"] = destVar;
+        expandAll["relVariable"] = relVar;
+        expandAll["direction"] = direction;
+        line = "("+startVar+") -["+relVar+"]-> ("+destVar+")";
         cout << "(" << startVar << ") -[" << relVar << "]-> (" << destVar << ")" << endl;
     }else if(relType != "null" && direction == "right"){
+        expandAll["sourceVariable"] = startVar;
+        expandAll["destVariable"] = destVar;
+        expandAll["relVariable"] = relVar;
+        expandAll["relType"] = relType;
+        expandAll["direction"] = direction;
         cout << "(" << startVar << ") -[" << relVar << " :" << relType << "]-> (" << destVar << ")" << endl;
     }else if(relType == "null" && direction == "left") {
+        expandAll["sourceVariable"] = startVar;
+        expandAll["destVariable"] = destVar;
+        expandAll["relVariable"] = relVar;
+        expandAll["direction"] = direction;
         cout << "(" << startVar << ") <-[" << relVar << "]- (" << destVar << ")" << endl;
     }else if(relType != "null" && direction == "left"){
+        expandAll["sourceVariable"] = startVar;
+        expandAll["destVariable"] = destVar;
+        expandAll["relVariable"] = relVar;
+        expandAll["relType"] = relType;
+        expandAll["direction"] = direction;
         cout << "(" << startVar << ") <-[" << relVar << " :" << relType << "]- (" << destVar << ")" << endl;
     }
+    cout<<expandAll.dump()<<endl;
 }
 
 Apply::Apply(Operator* opr): opr1(opr){}

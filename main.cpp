@@ -11,7 +11,7 @@
 using namespace std;
 
 int main() {
-    antlr4::ANTLRInputStream input("match (t)-[]-(e) return e");
+    antlr4::ANTLRInputStream input("match (n) return n.name, n.age, n.a as time");
     //match (n)-[r:Works]-(m:Person)-[]-() return n
     // Create a lexer from the input
     CypherLexer lexer(&input);

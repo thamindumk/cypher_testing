@@ -713,11 +713,20 @@ Operator* QueryPlanner::pathPatternHandler(ASTNode *pattern) {
 
         if( e->elements[0]->elements[0]->nodeType == Const::UNIDIRECTION_ARROW)
         {
-            opr = new UndirectedRelationshipTypeScan(analyzedDetails.second[1]->elements[0]->value, relVar, startVar, destVar);
+            if (analyzedDetails.first[0]) {
+                opr = new UndirectedRelationshipTypeScan(analyzedDetails.second[1]->elements[0]->value, relVar, startVar, destVar);
+
+            } else {
+                opr = new UndirectedRelationshipTypeScan(analyzedDetails.second[0]->elements[0]->value, relVar, startVar, destVar);
+            }
 
         }else{
             auto direction = e->elements[0]->elements[0]->nodeType == Const::LEFT_ARRROW ? "left" : "right";
-            opr = new DirectedRelationshipTypeScan(direction,analyzedDetails.second[1]->elements[0]->value, relVar, startVar, destVar);
+            if (analyzedDetails.first[0]) {
+                opr = new DirectedRelationshipTypeScan(direction,analyzedDetails.second[1]->elements[0]->value, relVar, startVar, destVar);
+            } else {
+                opr = new DirectedRelationshipTypeScan(direction,analyzedDetails.second[0]->elements[0]->value, relVar, startVar, destVar);
+            }
         }
 
         if (analyzedDetails.first[2]){
@@ -915,12 +924,10 @@ Operator* QueryPlanner::pathPatternHandler(ASTNode *pattern) {
 
         }
     }else if(isNodeLabelExist){
-
         auto* e = patternElements[labelIndex];
 
         ASTNode* sourceNodePattern = nullptr;
         ASTNode* destinationNodePattern = nullptr;
-
         if(labelIndex>=0){
             sourceNodePattern = patternElements[labelIndex]->elements[1];
         }else{
@@ -986,9 +993,11 @@ Operator* QueryPlanner::pathPatternHandler(ASTNode *pattern) {
             }
         }
 
-        startVar = analyzedSource.first[0]? analyzedSource.second[0]->value : "node_var_"+ to_string(index);
-        prevRel = getRelationshipDetails(patternElements[labelIndex+1]->elements[0]->elements[1]).first[0] ?
-                  getRelationshipDetails(patternElements[labelIndex+1]->elements[0]->elements[1]).second[0]->value : "edge_var_"+to_string(labelIndex+1);
+        startVar = analyzedSource.first[0]? analyzedSource.second[0]->value : "node_var_"+ to_string(labelIndex);
+        if(labelIndex<patternElements.size()-1){
+            prevRel = getRelationshipDetails(patternElements[labelIndex+1]->elements[0]->elements[1]).first[0] ?
+                      getRelationshipDetails(patternElements[labelIndex+1]->elements[0]->elements[1]).second[0]->value : "edge_var_"+to_string(labelIndex+1);
+        }
         for(int left = labelIndex; left >= 0; left--){
             filterCases.clear();
             pair<vector<bool>, vector<ASTNode *>> analyzedNode;

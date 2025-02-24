@@ -930,6 +930,7 @@ any ASTBuilder::visitOC_XorExpression(CypherParser::OC_XorExpressionContext *ctx
     {
       node->addElements(any_cast<ASTNode*>(visitOC_AndExpression(element)));
     }
+    return static_cast<ASTNode*>(node);
   }
   return visitOC_AndExpression(ctx->oC_AndExpression()[0]);
 }
