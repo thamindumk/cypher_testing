@@ -11,9 +11,9 @@
 using namespace std;
 
 int main() {
-    antlr4::ANTLRInputStream input("match (n) return n.name, n.age, n.a as time");
+    antlr4::ANTLRInputStream input("match (n) where id(n) > 20  return n");
     //match (n)-[r:Works]-(m:Person)-[]-() return n
-    // Create a lexer from the input
+    // Create a lexer from the inpu
     CypherLexer lexer(&input);
 
     // Create a token stream from the lexer

@@ -15,6 +15,14 @@ void NodeScanByLabel::execute() {
     cout << "scanning node based on single label: " << label <<" and assigned with variable: "<<var<< endl;
 }
 
+// NodeByIdSeek Implementation
+NodeByIdSeek::NodeByIdSeek(string id, string var) : id(id), var(var) {}
+
+void NodeByIdSeek::execute() {
+    cout<<"NodeByIdSeek: \n"<<endl;
+    cout << "seeking node based on id: " << id <<" and assigned with variable: "<<var<< endl;
+}
+
 // MultipleNodeScanByLabel Implementation
 MultipleNodeScanByLabel::MultipleNodeScanByLabel(vector<string> label, const string& var) : label(label), var(var) {}
 
@@ -50,6 +58,7 @@ void ProduceResults::execute() {
 
     for(auto* e: item)
     {
+        cout<<e->print()<<endl;
         cout<<"Return variable: "<< e->value<<endl;
     }
 }
@@ -292,7 +301,7 @@ UndirectedAllRelationshipScan::UndirectedAllRelationshipScan(string startVar, st
 
 
 void UndirectedAllRelationshipScan::execute() {
-    cout<<"UndirectedRelationshipTypeScan: \n"<<endl;
+    cout<<"UndirectedAllRelationshipScan: \n"<<endl;
     cout << "("<<startVar<<") -[" << relVar<<"]- (" << endVar << ")" << endl;
 }
 
