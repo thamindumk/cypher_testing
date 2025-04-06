@@ -11,7 +11,7 @@
 using namespace std;
 
 int main() {
-    antlr4::ANTLRInputStream input("MATCH (n:Person) RETURN n.city, COUNT(n) AS cityCount Group BY cityCount DESC");
+    antlr4::ANTLRInputStream input("MATCH (n:Person) RETURN n.city, COUNT(n) AS cityCount ORDER BY cityCount DESC");
     //match (n)-[r:Works]-(m:Person)-[]-() return n
     // Create a lexer from the inpu
     CypherLexer lexer(&input);

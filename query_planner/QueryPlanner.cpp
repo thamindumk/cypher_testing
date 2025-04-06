@@ -137,6 +137,8 @@ Operator* QueryPlanner::createExecutionPlan(ASTNode* ast, Operator* op, string v
                 oprtr = new Skip(temp->getOperator(), node->elements[0]);
                 temp->setOperator(oprtr);
                 oprtr = temp;
+            } else if (node->nodeType == Const::RETURN_BODY) {
+                oprtr = createExecutionPlan(node, oprtr);
             }
         }
 
