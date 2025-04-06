@@ -273,7 +273,20 @@ OrderBy::OrderBy(Operator* input, ASTNode* orderByClause) : input(input), orderB
 
 void OrderBy::execute() {
     input->execute();
-    cout << "Order By : "<<this->orderByClause->print()<< endl;
+    json orderBy;
+    orderBy["operator"] = "OrderBy";
+    if (this->orderByClause->nodeType == Const::ASC) {
+        orderBy["order"] = "ASC";
+    } else {
+        orderBy["order"] = "DESC";
+    }
+    if (this->orderByClause->elements[0]->nodeType == Const::VARIABLE) {
+        orderBy["variable"] = this->orderByClause->elements[0]->value;
+    } else if (this->orderByClause->elements[0]->nodeType == Const::NON_ARITHMETIC_OPERATOR) {
+        auto nonArithmeticOperator = this->orderByClause->elements[0];
+        orderBy["variable"] = nonArithmeticOperator->elements[0]->value + "." + nonArithmeticOperator->elements[1]->elements[0]->value;
+    }
+    cout << "Order By : "<<orderBy.dump()<< endl;
 }
 
 // Union Implementation

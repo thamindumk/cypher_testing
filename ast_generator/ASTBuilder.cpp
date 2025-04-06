@@ -673,14 +673,14 @@ any ASTBuilder::visitOC_Limit(CypherParser::OC_LimitContext *ctx)  {
 
 
 any ASTBuilder::visitOC_SortItem(CypherParser::OC_SortItemContext *ctx)  {
-  if(ctx->ASC() or ctx->ASCENDING())
+  if(ctx->DESC() or ctx->DESCENDING())
   {
-    auto *node = new ASTInternalNode(Const::ASC);
+    auto *node = new ASTInternalNode(Const::DESC);
     node->addElements(any_cast<ASTNode*>(visitOC_Expression(ctx->oC_Expression())));
     return static_cast<ASTNode*>(node);
   }else
   {
-    auto *node = new ASTInternalNode(Const::DESC);
+    auto *node = new ASTInternalNode(Const::ASC);
     node->addElements(any_cast<ASTNode*>(visitOC_Expression(ctx->oC_Expression())));
     return static_cast<ASTNode*>(node);
   }

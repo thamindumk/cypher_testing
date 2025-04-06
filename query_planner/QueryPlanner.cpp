@@ -118,9 +118,10 @@ Operator* QueryPlanner::createExecutionPlan(ASTNode* ast, Operator* op, string v
         oprtr = createExecutionPlan(ast->elements[0],oprtr);
     }else if(ast->nodeType == Const::RETURN)
     {
+        bool isDistinct = false;
         for (auto * node: ast->elements) {
             if (node->nodeType == Const::DISTINCT) {
-                oprtr = new Distinct(oprtr);
+                isDistinct = true;
                 oprtr = createExecutionPlan(node->elements[0],oprtr);
             } else if (node->nodeType == Const::ORDERED_BY) {
                 auto temp = static_cast<ProduceResults*>(oprtr);
@@ -141,7 +142,12 @@ Operator* QueryPlanner::createExecutionPlan(ASTNode* ast, Operator* op, string v
                 oprtr = createExecutionPlan(node, oprtr);
             }
         }
-
+        if (isDistinct) {
+            auto temp = static_cast<ProduceResults*>(oprtr);
+            oprtr = new Distinct(temp->getOperator());
+            temp->setOperator(oprtr);
+            oprtr = temp;
+        }
     }else if(ast->nodeType == Const::DISTINCT)
     {
 
