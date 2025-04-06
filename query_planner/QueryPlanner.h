@@ -7,9 +7,13 @@
 #include <algorithm>
 
 class QueryPlanner {
-public:
+ private:
+    ASTNode* root;
+ public:
     QueryPlanner() = default;
     ~QueryPlanner() = default;
+    ASTNode* getRoot() { return root; }
+    void setRoot(ASTNode* root) { this->root = root; }
 
     Operator* createExecutionPlan(ASTNode* ast, Operator* op = nullptr, string var = "");
     bool isAllChildAreGivenType(string nodeType, ASTNode* root);

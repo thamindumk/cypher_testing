@@ -59,8 +59,15 @@ void ProduceResults::execute() {
     for(auto* e: item)
     {
         cout<<e->print()<<endl;
-        cout<<"Return variable: "<< e->value<<endl;
     }
+}
+
+Operator *ProduceResults::getOperator() {
+    return this->op;
+}
+
+void ProduceResults::setOperator(Operator *op) {
+    this->op = op;
 }
 
 // Filter Implementation
@@ -96,7 +103,15 @@ string Filter::comparisonOperand(ASTNode *ast) {
         }
 
         operand["element"] = element;
-    } else {
+    } else if (ast->nodeType == Const::FUNCTION_BODY) {
+        operand["Type"] = Const::FUNCTION;
+        operand["functionName"] = ast->elements[0]->elements[1]->value;
+        vector<string> arguments;
+        for (auto* arg: ast->elements[1]->elements) {
+            arguments.push_back(arg->value);
+        }
+        operand["arguments"] = arguments;
+    }else {
         operand["Type"] = ast->nodeType;
         operand["value"] = ast->value;
     }
@@ -211,11 +226,19 @@ void Aggregation::execute() {
 }
 
 // Limit Implementation
-Limit::Limit(Operator* input, int limit) : input(input), limit(limit) {}
+Limit::Limit(Operator* input, ASTNode* limit) : input(input), limit(limit) {}
 
 void Limit::execute() {
     input->execute();
-    cout << "Limiting result to " << limit << " rows." << endl;
+    cout << "Limiting result to " << limit->print() << " rows." << endl;
+}
+
+// Skip Implementation
+Skip::Skip(Operator* input, ASTNode* skip) : input(input), skip(skip) {}
+
+void Skip::execute() {
+    input->execute();
+    cout << "Skipping first" << skip->print() << " rows." << endl;
 }
 
 // Sort Implementation
@@ -244,6 +267,13 @@ Distinct::Distinct(Operator* input) : input(input) {}
 void Distinct::execute() {
     input->execute();
     cout << "Applying Distinct to remove duplicates." << endl;
+}
+
+OrderBy::OrderBy(Operator* input, ASTNode* orderByClause) : input(input), orderByClause(orderByClause){}
+
+void OrderBy::execute() {
+    input->execute();
+    cout << "Order By : "<<this->orderByClause->print()<< endl;
 }
 
 // Union Implementation
@@ -409,3 +439,130 @@ void Apply::execute() {
     cout<<"Apply: result merged"<<endl;
 }
 
+EagerFunction::EagerFunction(Operator *input, ASTNode *ast, std::string functionName): input(input), ast(ast), functionName(functionName){}
+
+void EagerFunction::execute() {
+    input->execute();
+    cout<<"Eager Function name: "<<functionName<<endl;
+    cout<<ast->print()<<endl;
+}
+
+CartesianProduct::CartesianProduct(Operator* left, Operator* right) : left(left), right(right) {}
+
+void CartesianProduct::execute() {
+    left->execute();
+    right->execute();
+    cout << "Performing Cartesian Product." << endl;
+}
+
+Create::Create(Operator *input, ASTNode *ast) : ast(ast), input(input){}
+
+void Create::execute() {
+    json create;
+    if (input != nullptr) {
+        input->execute();
+    }
+    create["operator"] = "Create";
+    vector<json> list;
+    for (auto* e: ast->elements[0]->elements) {
+        if (e->nodeType == Const::NODE_PATTERN) {
+            json data;
+            data["type"] = "Node";
+            for (auto* element: e->elements) {
+                if (element->nodeType == Const::NODE_LABEL) {
+                    data["label"] = element->elements[0]->value;
+                } else if (element->nodeType == Const::VARIABLE) {
+                    data["variable"] = element->value;
+                } else if (element->nodeType == Const::PROPERTIES_MAP) {
+                    map<string, string> property;
+                    for (auto* prop: element->elements) {
+                        if (prop->elements[0]->nodeType != Const::RESERVED_WORD){
+                            property.insert(pair<string, string>(prop->elements[0]->value, prop->elements[1]->value));
+                        }
+                    }
+                    data["properties"] = property;
+                }
+            }
+            list.push_back(data);
+        } else if (e->nodeType == Const::PATTERN_ELEMENTS) {
+            json data;
+            data["type"] = "Relationships";
+            vector<json> relationships;
+            json relationship;
+            json source;
+            json rel;
+            json dest;
+            for (auto* patternElement: e->elements) {
+                if (patternElement->nodeType == Const::NODE_PATTERN){
+                    for (auto* element: patternElement->elements) {
+                        if (element->nodeType == Const::NODE_LABEL) {
+                            source["label"] = element->elements[0]->value;
+                        } else if (element->nodeType == Const::VARIABLE) {
+                            source["variable"] = element->value;
+                        } else if (element->nodeType == Const::PROPERTIES_MAP) {
+                            map<string, string> property;
+                            for (auto* prop: element->elements) {
+                                if (prop->elements[0]->nodeType != Const::RESERVED_WORD){
+                                    property.insert(pair<string, string>(prop->elements[0]->value, prop->elements[1]->value));
+                                }
+                            }
+                            source["properties"] = property;
+                        }
+                    }
+                } else if (patternElement->nodeType == Const::PATTERN_ELEMENT_CHAIN) {
+                    for (auto* element: patternElement->elements[0]->elements[1]->elements) {
+                        if (element->nodeType == Const::RELATIONSHIP_TYPE) {
+                            rel["type"] = element->elements[0]->value;
+                        } else if (element->nodeType == Const::VARIABLE) {
+                            rel["variable"] = element->value;
+                        } else if (element->nodeType == Const::PROPERTIES_MAP) {
+                            map<string, string> property;
+                            for (auto* prop: element->elements) {
+                                if (prop->elements[0]->nodeType != Const::RESERVED_WORD){
+                                    property.insert(pair<string, string>(prop->elements[0]->value, prop->elements[1]->value));
+                                }
+                            }
+                            rel["properties"] = property;
+                        }
+                    }
+
+                    for (auto* element: patternElement->elements[1]->elements) {
+                        if (element->nodeType == Const::NODE_LABEL) {
+                            dest["label"] = element->elements[0]->value;
+                        } else if (element->nodeType == Const::VARIABLE) {
+                            dest["variable"] = element->value;
+                        } else if (element->nodeType == Const::PROPERTIES_MAP) {
+                            map<string, string> property;
+                            for (auto* prop: element->elements) {
+                                if (prop->elements[0]->nodeType != Const::RESERVED_WORD){
+                                    property.insert(pair<string, string>(prop->elements[0]->value, prop->elements[1]->value));
+                                }
+                            }
+                            dest["properties"] = property;
+                        }
+                    }
+
+                    if (patternElement->elements[0]->elements[0]->nodeType == Const::RIGHT_ARROW) {
+                        relationship["source"] = source;
+                        relationship["dest"] = dest;
+                        relationship["rel"] = rel;
+                    } else {
+                        relationship["source"] = dest;
+                        relationship["dest"] = source;
+                        relationship["rel"] = rel;
+                    }
+                    relationships.push_back(relationship);
+                    source.clear();
+                    rel.clear();
+                    source = dest;
+                    dest.clear();
+                }
+            }
+            data["relationships"] = relationships;
+            list.push_back(data);
+        }
+    }
+    create["elements"] = list;
+    cout << create.dump() << endl;
+
+}

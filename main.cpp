@@ -11,7 +11,7 @@
 using namespace std;
 
 int main() {
-    antlr4::ANTLRInputStream input("match (n) where id(n) > 20  return n");
+    antlr4::ANTLRInputStream input("MATCH (n:Person) RETURN n.city, COUNT(n) AS cityCount Group BY cityCount DESC");
     //match (n)-[r:Works]-(m:Person)-[]-() return n
     // Create a lexer from the inpu
     CypherLexer lexer(&input);
@@ -29,6 +29,7 @@ int main() {
     if(semantic_analyzer.analyze(ast))
     {
         QueryPlanner query_planner;
+        query_planner.setRoot(ast);
         Operator* opr = query_planner.createExecutionPlan(ast);
         opr->execute();
     }else

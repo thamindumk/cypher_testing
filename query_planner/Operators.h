@@ -67,7 +67,8 @@ class ProduceResults : public Operator {
 public:
     ProduceResults(Operator* op, vector<ASTNode*> item);
     void execute() override;
-
+    Operator* getOperator();
+    void setOperator(Operator* op);
 private:
     vector<ASTNode*> item;
     Operator* op;
@@ -138,11 +139,22 @@ private:
 
 // Limit Operator
 class Limit : public Operator {
-    Operator* input;
-    int limit;
 public:
-    Limit(Operator* input, int limit);
+    Limit(Operator* input, ASTNode* limit);
     void execute() override;
+private:
+    Operator* input;
+    ASTNode* limit;
+};
+
+// Skip Operator
+class Skip : public Operator {
+public:
+    Skip(Operator* input, ASTNode* skip);
+    void execute() override;
+private:
+    Operator* input;
+    ASTNode* skip;
 };
 
 // Sort Operator
@@ -170,6 +182,16 @@ class Distinct : public Operator {
 public:
     Distinct(Operator* input);
     void execute() override;
+};
+
+// Distinct Operator
+class OrderBy : public Operator {
+ public:
+    OrderBy(Operator* input, ASTNode* orderByClause);
+    void execute() override;
+ private:
+    Operator* input;
+    ASTNode* orderByClause;
 };
 
 // Union Operator
@@ -270,6 +292,41 @@ private:
     Operator* opr1;
     Operator* opr2;
 };
+
+class EagerFunction : public Operator {
+public:
+    // Constructor
+    EagerFunction(Operator* input, ASTNode* ast, string functionName);
+    void execute() override;
+
+private:
+    Operator* input;
+    ASTNode* ast;
+    string functionName;
+};
+
+class CartesianProduct : public Operator {
+public:
+    // Constructor
+    CartesianProduct(Operator* left, Operator* right);
+    void execute() override;
+
+private:
+    Operator* left;
+    Operator* right;
+};
+
+class Create : public Operator {
+public:
+    // Constructor
+    Create(Operator* input, ASTNode* ast);
+    void execute() override;
+
+private:
+    Operator* input;
+    ASTNode* ast;
+};
+
 
 void printDownArrow(int width);
 #endif // OPERATORS_H
